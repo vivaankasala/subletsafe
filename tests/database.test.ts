@@ -14,14 +14,18 @@ async function as(id: string, sql: string, params: unknown[] = []) {
 }
 beforeAll(async () => {
   await db.exec(
-    `create role anon; create role authenticated; create role service_role bypassrls; alter default privileges in schema public grant all on tables to anon,authenticated,service_role; alter default privileges in schema public grant execute on functions to anon,authenticated,service_role; create schema storage; create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text); alter table storage.objects enable row level security; create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz); create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$; grant usage on schema auth to authenticated,anon; grant execute on function auth.uid() to authenticated,anon;`,
+    `create role anon; create role authenticated;create role supabase_auth_admin; create role service_role bypassrls; alter default privileges in schema public grant all on tables to anon,authenticated,service_role; alter default privileges in schema public grant execute on functions to anon,authenticated,service_role; create schema storage; create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text); alter table storage.objects enable row level security; create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz); create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$; grant usage on schema auth to authenticated,anon; grant execute on function auth.uid() to authenticated,anon;`,
+  );
+  // Model a legacy ineligible account created before signup enforcement existed.
+  await db.exec(
+    `insert into auth.users values ('${a}','a@umich.edu',now()),('${b}','b@msu.edu',now()),('${c}','c@example.com',null); `,
   );
   for (const file of readdirSync("supabase/migrations")
     .filter((x) => x.endsWith(".sql"))
     .sort())
     await db.exec(readFileSync("supabase/migrations/" + file, "utf8"));
   await db.exec(
-    `insert into auth.users values ('${a}','a@umich.edu',now()),('${b}','b@msu.edu',now()),('${c}','c@example.com',null); insert into public.universities(id,name,slug,email_domains,city) values ('${u}','Michigan','umich',array['umich.edu','msu.edu'],'Ann Arbor') on conflict do nothing;insert into public.pilot_invites(email) values ('a@umich.edu'),('b@msu.edu');`,
+    `insert into public.universities(id,name,slug,email_domains,city) values ('${u}','Michigan','umich',array['umich.edu','msu.edu'],'Ann Arbor') on conflict do nothing;insert into public.pilot_invites(email) values ('a@umich.edu'),('b@msu.edu');`,
   );
 }, 60000);
 afterAll(() => db.close());
@@ -380,5 +384,57 @@ it("hides a deletion requester immediately without deleting conversation evidenc
 it("does not expose privileged membership helpers to anonymous callers", async () => {
   await db.exec("reset role;set role anon");
   await expect(db.query("select public.has_profile()")).rejects.toThrow();
+  await db.exec("reset role");
+});
+it("rejects off-campus account creation and email changes at the Auth table boundary", async () => {
+  await db.exec("reset role");
+  for (const email of [
+    "test@gmail.com",
+    "test@msu.edu.evil.com",
+    "test@dept.umich.edu",
+    "test@msu.edu@evil.com",
+  ])
+    await expect(
+      db.query(
+        "insert into auth.users(id,email) values(gen_random_uuid(),$1)",
+        [email],
+      ),
+    ).rejects.toThrow(/university email/);
+  await expect(
+    db.query("update auth.users set email=$1 where id=$2", [
+      "outside@example.com",
+      a,
+    ]),
+  ).rejects.toThrow(/university email/);
+  await db.query(
+    "insert into auth.users(id,email) values(gen_random_uuid(),$1)",
+    ["newstudent@UMICH.EDU"],
+  );
+});
+
+it("enforces the boundary under the Auth service role and preserves confirmation updates", async () => {
+  await db.exec(
+    "reset role;grant usage on schema auth to supabase_auth_admin;grant insert,select,update on auth.users to supabase_auth_admin;set role supabase_auth_admin",
+  );
+  await db.query(
+    "insert into auth.users(id,email) values(gen_random_uuid(),$1)",
+    ["service-role-test@msu.edu"],
+  );
+  await expect(
+    db.query("insert into auth.users(id,email) values(gen_random_uuid(),$1)", [
+      "service-role-test@example.com",
+    ]),
+  ).rejects.toThrow(/university email/);
+  await db.query("update auth.users set email_confirmed_at=now() where id=$1", [
+    b,
+  ]);
+  expect(
+    (
+      await db.query<{ email_confirmed_at: string }>(
+        "select email_confirmed_at from auth.users where id=$1",
+        [b],
+      )
+    ).rows[0].email_confirmed_at,
+  ).toBeTruthy();
   await db.exec("reset role");
 });

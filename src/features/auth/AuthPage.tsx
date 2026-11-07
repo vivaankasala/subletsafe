@@ -1,10 +1,12 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, ArrowRight, Mail, ShieldCheck } from "lucide-react";
 import { configured, errorMessage, getSupabase } from "../../lib/supabase";
 import { Notice } from "../../components/ui";
 import { safeReturnPath } from "../profiles/profile";
+import { normalizeUniversityEmail } from "./universityEmail";
 export function AuthPage() {
+  const formRef = useRef<HTMLFormElement>(null);
   const [params] = useSearchParams();
   const [mode, setMode] = useState<"login" | "signup" | "reset">(
       params.get("mode") === "signup" ? "signup" : "login",
@@ -25,7 +27,7 @@ export function AuthPage() {
       const db = getSupabase();
       if (mode === "signup") {
         const { error } = await db.auth.signUp({
-          email,
+          email: normalizeUniversityEmail(email),
           password,
           options: {
             emailRedirectTo: window.location.origin + "/auth/callback",
@@ -33,7 +35,7 @@ export function AuthPage() {
         });
         if (error) throw error;
         setInfo(
-          "Check your inbox to confirm your university email. Then return to sign in.",
+          "If this address needs confirmation, check your inbox and junk folder. If you already confirmed it, sign in instead.",
         );
       } else if (mode === "reset") {
         const { error } = await db.auth.resetPasswordForEmail(email, {
@@ -96,7 +98,7 @@ export function AuthPage() {
             project setup.
           </Notice>
         )}
-        <form onSubmit={submit}>
+        <form ref={formRef} onSubmit={submit}>
           <label>
             University email
             <div className="input-icon">
@@ -107,9 +109,14 @@ export function AuthPage() {
                 placeholder="you@umich.edu"
                 required
                 autoComplete="email"
+                maxLength={254}
+                aria-describedby="university-email-help"
               />
             </div>
           </label>
+          <p id="university-email-help" className="fineprint">
+            Only @msu.edu and @umich.edu addresses can create an account.
+          </p>
           {mode !== "reset" && (
             <label>
               Password
@@ -137,6 +144,41 @@ export function AuthPage() {
                   : "Sign in"}
             <ArrowRight size={17} />
           </button>
+          {mode === "signup" && (
+            <button
+              type="button"
+              className="plain full"
+              disabled={busy || !configured}
+              onClick={async () => {
+                setError("");
+                setInfo("");
+                setBusy(true);
+                try {
+                  const email = normalizeUniversityEmail(
+                    String(new FormData(formRef.current!).get("email") || ""),
+                  );
+                  const { error } = await getSupabase().auth.resend({
+                    type: "signup",
+                    email,
+                    options: {
+                      emailRedirectTo:
+                        window.location.origin + "/auth/callback",
+                    },
+                  });
+                  if (error) throw error;
+                  setInfo(
+                    "If your account still needs confirmation, a new link has been requested. Check your inbox and junk folder. If already confirmed, sign in.",
+                  );
+                } catch (e) {
+                  setError(errorMessage(e));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Resend confirmation email
+            </button>
+          )}
         </form>
         <button
           className="plain"

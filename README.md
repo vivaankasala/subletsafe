@@ -30,7 +30,7 @@ Open the Local URL printed by Vite (normally http://localhost:5173). Without con
    ```
 
    A local stack's legacy **anon** JWT is supported. Secret keys and service-role JWTs are rejected by the frontend configuration validator. Do not put them in any `VITE_` variable.
-3. This project’s initial migrations have now been applied through the connected Supabase tools. For a fresh project, apply the two timestamped SQL files under `supabase/migrations/` in order. They include university seed data. The drafts in `docs/migration-history/` are historical references, not additional migrations. For local development, `supabase db reset` uses the timestamped files.
+3. This project’s initial migrations have now been applied through the connected Supabase tools. For a fresh project, apply the timestamped SQL files under `supabase/migrations/` in order. They include university seed data. The drafts in `docs/migration-history/` are historical references, not additional migrations. For local development, `supabase db reset` uses the timestamped files.
 4. In Auth, enable email confirmation; set Site URL to the actual frontend origin and allow `/auth/callback` and `/auth/update-password` on that origin. Configure a development mail service or use local Supabase's mail inbox. Configure password policy to match or exceed the UI's 10-character signup minimum.
 5. The pilot is invitation-only. Through trusted SQL, add each invited student's normalized university address to `pilot_invites`; no client can read or modify this list. Registration alone does not grant access. Review university email domains in `universities` before enabling live accounts. University affiliation and search campus are intentionally separate.
 6. Deploy `upload-listing-image` with the Supabase CLI. Set the function's `APP_ORIGIN` to the exact frontend origin (e.g. http://localhost:5173). Supabase supplies its server URL, anon key and service-role key to the function. Never move those server secrets into frontend config. Verify this function under the actual Edge runtime before relying on uploads.
@@ -92,3 +92,6 @@ Account deletion requests immediately hide the account and prevent new activity.
 ## Next operational work
 
 Connect a development Supabase project, validate the full journey with two members plus an outsider, finalize retention/community/privacy policies, name moderation coverage, then seed real inventory with permission. See `docs/pilot-runbook.md` and `docs/release-checklist.md`.
+
+## University signup gate
+Only exact @msu.edu and @umich.edu addresses can register. Frontend validation gives a clear error, and the private Auth-table trigger enforces the restriction against direct API bypass and account email changes. Email confirmation and pilot invitation are still required. See docs/signup-security.md for implementation and verification.
