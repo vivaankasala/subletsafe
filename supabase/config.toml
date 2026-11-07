@@ -15,3 +15,7 @@ enable_signup = true
 [auth.email]
 enable_signup = true
 enable_confirmations = true
+
+[functions.upload-listing-image]
+# The handler validates the bearer token with Auth getUser before any privileged action.
+verify_jwt = false

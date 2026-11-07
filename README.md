@@ -4,9 +4,9 @@ Student housing and roommate discovery for Michigan universities. React + Vite +
 
 ## Status
 
-This is a working local codebase, not a launched marketplace. Home, auth, profile, housing, roommate, messaging, moderation and account routes are implemented. SQL migrations define ownership, membership, blocks, reports, quotas and privileged operations. No Supabase project or real student data is connected. Missing configuration displays setup information; it never substitutes invented listings.
+This is a working local codebase, not a launched marketplace. Home, auth, profile, housing, roommate, messaging, moderation and account routes are implemented. SQL migrations define ownership, membership, blocks, reports, quotas and privileged operations. A Supabase development project is connected and its initial database and upload function have been deployed. No real student records have been created. Missing configuration displays setup information; it never substitutes invented listings.
 
-Local unit and embedded PostgreSQL tests exercise validation and RLS. Hosted Auth, Storage, Edge Functions and Realtime still require integration verification. Do not invite students until `docs/release-checklist.md` is satisfied.
+Local unit and embedded PostgreSQL tests exercise validation and RLS. Live campus reads and unauthorized upload rejection have been verified; full member Auth, positive Storage uploads and Realtime journeys still need integration verification. See docs/backend-status.md. Do not invite students until `docs/release-checklist.md` is satisfied.
 
 ## Run locally
 
@@ -30,7 +30,7 @@ Open the Local URL printed by Vite (normally http://localhost:5173). Without con
    ```
 
    A local stack's legacy **anon** JWT is supported. Secret keys and service-role JWTs are rejected by the frontend configuration validator. Do not put them in any `VITE_` variable.
-3. Apply `supabase/migrations/0001_pilot.sql`, `0002_operations.sql`, `0003_storage_realtime.sql`, `0004_review_fixes.sql`, and `0005_invite_pilot.sql` in that order using the Supabase CLI or SQL editor, then apply `supabase/seed.sql`. The third migration requires the Supabase Storage schema. Reconcile any existing schema rather than applying blindly. No existing data migrations have been attempted here.
+3. This project’s initial migrations have now been applied through the connected Supabase tools. For a fresh project, apply the two timestamped SQL files under `supabase/migrations/` in order. They include university seed data. The drafts in `docs/migration-history/` are historical references, not additional migrations. For local development, `supabase db reset` uses the timestamped files.
 4. In Auth, enable email confirmation; set Site URL to the actual frontend origin and allow `/auth/callback` and `/auth/update-password` on that origin. Configure a development mail service or use local Supabase's mail inbox. Configure password policy to match or exceed the UI's 10-character signup minimum.
 5. The pilot is invitation-only. Through trusted SQL, add each invited student's normalized university address to `pilot_invites`; no client can read or modify this list. Registration alone does not grant access. Review university email domains in `universities` before enabling live accounts. University affiliation and search campus are intentionally separate.
 6. Deploy `upload-listing-image` with the Supabase CLI. Set the function's `APP_ORIGIN` to the exact frontend origin (e.g. http://localhost:5173). Supabase supplies its server URL, anon key and service-role key to the function. Never move those server secrets into frontend config. Verify this function under the actual Edge runtime before relying on uploads.

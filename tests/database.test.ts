@@ -377,3 +377,8 @@ it("hides a deletion requester immediately without deleting conversation evidenc
     ok: false,
   });
 });
+it("does not expose privileged membership helpers to anonymous callers", async () => {
+  await db.exec("reset role;set role anon");
+  await expect(db.query("select public.has_profile()")).rejects.toThrow();
+  await db.exec("reset role");
+});

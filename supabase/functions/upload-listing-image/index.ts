@@ -1,9 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { validateImage } from "../_shared/image-validation.ts";
+import { allowedOrigin } from "../_shared/cors.ts";
 Deno.serve(async (req: Request) => {
-  const origin = Deno.env.get("APP_ORIGIN") || "http://localhost:5173";
+  const origin = allowedOrigin(
+    req.headers.get("origin"),
+    Deno.env.get("APP_ORIGIN"),
+  );
   const headers = {
-    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Origin": origin || "null",
     "Access-Control-Allow-Headers":
       "authorization,apikey,content-type,x-client-info",
     "Access-Control-Allow-Methods": "POST,OPTIONS",
@@ -17,8 +21,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   try {
-    if (req.headers.get("origin") && req.headers.get("origin") !== origin)
-      return json({ error: "Origin not allowed" }, 403);
+    if (!origin) return json({ error: "Origin not allowed" }, 403);
     const auth = req.headers.get("authorization") || "";
     const url = Deno.env.get("SUPABASE_URL")!,
       pub = Deno.env.get("SUPABASE_ANON_KEY")!;
