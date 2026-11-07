@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "imagescript": "npm:imagescript@3.3.0",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.119.0"
+  }
+}
