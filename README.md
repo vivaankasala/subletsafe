@@ -87,6 +87,8 @@ Account deletion requests immediately hide the account and prevent new activity.
 
 ## Deployment
 
+Docker and Kubernetes configuration is included. Start with `docker compose --env-file .env.local up --build -d`, then open http://127.0.0.1:8080. Docker Desktop is required. See [the container deployment guide](docs/container-deployment.md) for setup, Supabase redirect settings, Kubernetes commands, and verification limitations.
+
 `pnpm build` produces a static `dist/` directory. Configure the host to serve `index.html` for non-asset application routes, including nested housing/auth paths; do not rewrite missing assets to HTML. Put publishable frontend values into build-time environment configuration. Set the exact deployed auth redirect origins and Edge Function origin separately. Rebuild when frontend configuration changes. No external hosting project or GitHub repository has been created. Database grants are explicitly reset for the application tables/functions so security does not depend on a Supabase project’s default grant settings.
 
 ## Next operational work

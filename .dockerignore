@@ -1,0 +1,19 @@
+# Allowlist: no .env files, Git data, local dependencies, outputs, or Supabase secrets.
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.json
+!vite.config.ts
+!playwright.config.ts
+!index.html
+!src/
+!src/**
+!tests/
+!tests/**
+!supabase/
+!supabase/functions/
+!supabase/functions/_shared/
+!supabase/functions/_shared/**
+!docker/
+!docker/nginx.conf
