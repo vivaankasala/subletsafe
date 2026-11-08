@@ -4,7 +4,7 @@ Docker packages the built website and its web server. Kubernetes runs that image
 
 ## Start with Docker on your Mac
 
-1. Install [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/) and open it. Wait until Docker is running. Installation is not included in this change.
+1. Install [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/) and open it. Wait until Docker is running. Docker Desktop 4.98.0 (Intel) has now been installed on this Mac. The local Docker engine and SubletSafe container have been verified running.
 2. Open Terminal and go to the source directory:
 
    ```sh
@@ -26,6 +26,8 @@ Docker packages the built website and its web server. Kubernetes runs that image
    ```sh
    sh scripts/check-container.sh
    ```
+
+If a new Terminal says `docker: command not found`, run `export PATH="$HOME/.docker/bin:$PATH"` in that Terminal, then retry. Docker Desktop placed its command-line tools there.
 
 Useful commands:
 
@@ -131,6 +133,13 @@ Verified during implementation:
 - Compose YAML passes the Compose Specification JSON Schema. Namespace, Deployment, and Service pass Kubernetes 1.34 OpenAPI validation, including its int-or-string field semantics. Kustomize resource paths, selectors, namespaces, and target ports agree.
 - Shell syntax and Git whitespace checks pass. Selected Node/Nginx image tags exist and include Linux AMD64 and ARM64 variants.
 
-Docker Desktop, Docker CLI, and kubectl were not installed on the implementation machine. Image execution, Compose startup, and a real Kubernetes rollout therefore remain to be verified on a machine with those tools. See the accompanying build status for checks actually performed; passing application tests does not prove the container or cluster starts.
+Runtime verification completed on this Intel Mac with Docker Desktop 4.98.0, Engine 29.9.2, and Compose 5.6.1:
+
+- Docker’s own Compose configuration check passes. The actual multi-stage image builds from the frozen lockfile, including package installation on Alpine.
+- `subletsafe-web-1` runs from `subletsafe:local`, is healthy, and listens only on `127.0.0.1:8080`.
+- `sh scripts/check-container.sh` passes against the running container: health, nested SPA routes, missing assets, caching and headers.
+- `nginx -t` passes inside the container. UID/GID 101, read-only root, all capabilities dropped, no-new-privileges, writable /tmp, and absent build/source directories are verified.
+
+The frontend is running locally, not published online. No Kubernetes cluster has been enabled or deployed. Full authenticated browser journeys, confirmation/recovery emails on port 8080, and photo uploads still require the Supabase origin configuration and integration checks described above.
 
 References: [Docker multi-stage builds](https://docs.docker.com/build/building/multi-stage/), [Vite environment configuration](https://vite.dev/guide/env-and-mode), and [Kubernetes security contexts](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).

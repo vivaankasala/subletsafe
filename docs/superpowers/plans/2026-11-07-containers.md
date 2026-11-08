@@ -34,3 +34,7 @@ Missing static assets must not return HTML; auth deep links must survive refresh
 ## Execution record
 
 Completed inline. Review identified omitted shared test modules and the initial namespace dry-run ordering. The isolated build reproduced the missing-module failure, then passed after including the shared files; the deployment instructions now create the namespace first. Compose workspace build-script settings are copied before dependency installation. All 52 app tests, lint, build, YAML/schema checks and shell syntax checks pass. Docker image execution and Kubernetes rollout remain unverified because neither Docker nor kubectl is installed. No cloud deployment or Supabase configuration was changed.
+
+## Subsequent Docker runtime verification
+
+At the user’s request, installed the official checksum-verified Intel Docker Desktop 4.98.0 app. Engine 29.9.2 and Compose 5.6.1 run. Actual Compose configuration, Alpine dependency installation, image build, container startup, HTTP smoke script, Nginx validation, health and restricted runtime settings all pass. SubletSafe remains running locally on 127.0.0.1:8080. Kubernetes was not enabled or deployed; Supabase auth/Edge origins were not changed.
