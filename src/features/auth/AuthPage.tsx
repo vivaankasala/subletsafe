@@ -2,14 +2,20 @@ import { useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, ArrowRight, Mail, ShieldCheck } from "lucide-react";
 import { configured, errorMessage, getSupabase } from "../../lib/supabase";
-import { Notice } from "../../components/ui";
+import { Loading, Notice, Setup } from "../../components/ui";
+import { useAuth } from "./AuthProvider";
 import { safeReturnPath } from "../profiles/profile";
+import { PasswordField } from "./PasswordField";
 import { normalizeUniversityEmail } from "./universityEmail";
 export function AuthPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const [params] = useSearchParams();
   const [mode, setMode] = useState<"login" | "signup" | "reset">(
-      params.get("mode") === "signup" ? "signup" : "login",
+      params.get("mode") === "signup"
+        ? "signup"
+        : params.get("mode") === "reset"
+          ? "reset"
+          : "login",
     ),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -21,7 +27,7 @@ export function AuthPage() {
     setError("");
     setInfo("");
     const f = new FormData(e.currentTarget),
-      email = String(f.get("email")).trim(),
+      email = String(f.get("email")).trim().toLowerCase(),
       password = String(f.get("password") || "");
     try {
       const db = getSupabase();
@@ -45,7 +51,13 @@ export function AuthPage() {
         setInfo("If an account exists, you’ll receive a password reset link.");
       } else {
         const { error } = await db.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          if (error.code === "invalid_credentials")
+            throw Error(
+              "Email or password wasn’t recognized. Check your email address and use Show password to check what you typed, or choose Forgot your password.",
+            );
+          throw error;
+        }
         void navigate(safeReturnPath(params.get("next")));
       }
     } catch (e) {
@@ -118,19 +130,21 @@ export function AuthPage() {
             Only @msu.edu and @umich.edu addresses can create an account.
           </p>
           {mode !== "reset" && (
-            <label>
-              Password
-              <input
-                type="password"
-                name="password"
-                placeholder="At least 10 characters"
-                minLength={mode === "signup" ? 10 : 1}
-                required
-                autoComplete={
-                  mode === "signup" ? "new-password" : "current-password"
-                }
-              />
-            </label>
+            <PasswordField
+              key={mode}
+              label="Password"
+              name="password"
+              placeholder={
+                mode === "signup"
+                  ? "At least 10 characters"
+                  : "Enter your password"
+              }
+              minLength={mode === "signup" ? 10 : 1}
+              required
+              autoComplete={
+                mode === "signup" ? "new-password" : "current-password"
+              }
+            />
           )}
           {error && <Notice>{error}</Notice>}
           {info && <Notice>{info}</Notice>}
@@ -207,8 +221,24 @@ export function AuthPage() {
   );
 }
 export function UpdatePassword() {
+  const { session, loading } = useAuth();
   const [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false);
+  if (!configured) return <Setup />;
+  if (loading) return <Loading />;
+  if (!session)
+    return (
+      <div className="setup-card">
+        <h1>Open your password-reset link.</h1>
+        <p>
+          Use the latest link sent to your university email before choosing a
+          new password. If it has expired, request another one.
+        </p>
+        <Link className="button" to="/auth?mode=reset">
+          Request a password reset
+        </Link>
+      </div>
+    );
   return (
     <div className="setup-card">
       <h1>Choose a new password</h1>
@@ -230,10 +260,14 @@ export function UpdatePassword() {
           }
         }}
       >
-        <label>
-          New password
-          <input name="password" type="password" minLength={10} required />
-        </label>
+        <PasswordField
+          label="New password"
+          name="password"
+          minLength={10}
+          autoComplete="new-password"
+          required
+        />
+
         <button className="button" disabled={!configured || busy}>
           Update password
         </button>

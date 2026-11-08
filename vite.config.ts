@@ -27,6 +27,6 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    test: { include: ["tests/*.test.ts"], testTimeout: 30000 },
+    test: { include: ["tests/*.test.{ts,tsx}"], testTimeout: 30000 },
   };
 });
