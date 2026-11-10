@@ -5,7 +5,12 @@ resources:
   - namespace.yaml
   - deployment.yaml
   - service.yaml
+  - api-service.yaml
+  - config.yaml
 images:
   - name: subletsafe
     newName: subletsafe
+    newTag: local
+  - name: subletsafe-api
+    newName: subletsafe-api
     newTag: local

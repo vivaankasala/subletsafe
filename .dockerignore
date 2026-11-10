@@ -17,3 +17,7 @@
 !supabase/functions/_shared/**
 !docker/
 !docker/nginx.conf
+!backend/
+!backend/*.py
+!backend/requirements.txt
+!backend/Dockerfile

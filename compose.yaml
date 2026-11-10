@@ -1,4 +1,21 @@
 services:
+  api:
+    image: subletsafe-api:local
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      SUPABASE_URL: ${VITE_SUPABASE_URL:?Provide VITE_SUPABASE_URL via --env-file .env.local}
+      SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:?Provide the public Supabase key via --env-file .env.local}
+      APP_ORIGINS: ${APP_ORIGINS:-http://127.0.0.1:8080,http://localhost:8080,http://127.0.0.1:5173,http://localhost:5173}
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
   web:
     image: subletsafe:local
     build:
@@ -8,6 +25,10 @@ services:
         VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:?Provide the public Supabase key via --env-file .env.local}
     ports:
       - "127.0.0.1:8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+        restart: true
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m,mode=1777

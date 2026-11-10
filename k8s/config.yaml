@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: subletsafe-api
+  namespace: subletsafe
+data:
+  # Set these public values to the same project used to build the React image.
+  SUPABASE_URL: "https://YOUR_PROJECT.supabase.co"
+  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_REPLACE_WITH_YOUR_PUBLIC_KEY"
+  APP_ORIGINS: "http://127.0.0.1:8080,http://localhost:8080"

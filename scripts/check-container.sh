@@ -8,6 +8,9 @@ trap 'rm -rf "$temporary"' EXIT HUP INT TERM
 
 curl -fsS "$base/healthz" -o "$temporary/health"
 test "$(cat "$temporary/health")" = ok
+curl -fsS "$base/api/readyz" -o "$temporary/api-health"
+status=$(curl -sS -o /dev/null -w '%{http_code}' "$base/api/supabase/rest/v1/profiles")
+test "$status" = 401 || { echo "Expected 401 for unauthenticated API access, got $status" >&2; exit 1; }
 curl -fsS -D "$temporary/index-headers" "$base/" -o "$temporary/index"
 grep -qi 'cache-control: no-cache' "$temporary/index-headers"
 grep -qi 'x-content-type-options: nosniff' "$temporary/index-headers"

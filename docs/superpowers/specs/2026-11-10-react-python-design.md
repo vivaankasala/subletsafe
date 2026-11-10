@@ -1,0 +1,9 @@
+# React + Python rewrite
+
+The user explicitly requested a rewrite and push, then selected React + Python rather than a full Python-rendered interface. Preserve existing React screens, Supabase schema, authentication flows and user data. Use FastAPI as the required application HTTP backend. Keep the hosted Supabase Realtime WebSocket transport.
+
+Route Supabase SDK HTTP operations through same-origin `/api/supabase/` using the SDK's custom fetch option. This preserves query-builder behavior, password recovery, token refresh, upload retries and signed URL handling without duplicating the SDK in React. FastAPI must constrain upstream paths and methods, validate signup domains and profile/listing writes, enforce authenticated access and forward caller tokens without service-role privileges. Python validates and re-encodes photo requests, then uses the existing hosted Edge Function only as the privileged storage commit adapter. This preserves transactional upload retries without introducing an admin key into Python; its existing implementation remains deployed. No arbitrary upstream proxy, cookies, or server admin key.
+
+Backend requests need bounded bodies, upstream timeouts, sanitized errors, explicit origin handling and no credential logs. Unit/integration tests use synthetic credentials and mocked upstream HTTP. Keep existing TypeScript tests and DB security tests.
+
+Docker adds a non-root Python service with health checks and locked Python dependencies. Nginx proxies `/api/` to it; Vite dev proxies to local port 8000. Kubernetes gains the backend container, public runtime configuration and probes. Keep the same local frontend port 8080. Supabase schema does not change. Rebuild/start Docker, verify real public API and unauthenticated rejection, then commit/push to the existing private repository. Full member flows remain explicitly unverified unless actually exercised.

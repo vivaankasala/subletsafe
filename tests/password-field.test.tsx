@@ -111,6 +111,9 @@ it("explains a missing recovery session instead of offering a broken password up
 });
 it("explains rejected credentials and offers recovery without changing the password", async () => {
   testFetch.mockImplementation(async (input: RequestInfo | URL) => {
+    expect(String(input)).toBe(
+      "/api/supabase/auth/v1/token?grant_type=password",
+    );
     if (!String(input).includes("/auth/v1/token"))
       throw Error("Unexpected network request in test");
     return new Response(

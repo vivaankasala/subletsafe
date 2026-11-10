@@ -1,5 +1,6 @@
 import { isPublicConfiguration } from "./config";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createBackendFetch } from "./backendFetch";
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
 export const configured = isPublicConfiguration(url, key);
@@ -9,7 +10,9 @@ export function getSupabase() {
     throw Error(
       "Supabase is not connected. Add the project URL and publishable key to .env.local.",
     );
-  return (client ??= createClient(url!, key!));
+  return (client ??= createClient(url!, key!, {
+    global: { fetch: createBackendFetch(url!) },
+  }));
 }
 export function money(cents: number) {
   return new Intl.NumberFormat("en-US", {

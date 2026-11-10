@@ -16,6 +16,9 @@ export default defineConfig(({ mode }) => {
       "Use a valid Supabase URL and publishable/anon key. Secret keys must never reach the frontend.",
     );
   return {
+    server: {
+      proxy: { "/api": "http://127.0.0.1:8000" },
+    },
     plugins: [react(), tailwindcss()],
     build: {
       rollupOptions: {

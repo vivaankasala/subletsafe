@@ -1,6 +1,6 @@
 # SubletSafe
 
-Student housing and roommate discovery for Michigan universities. React + Vite + React Router + Supabase.
+Student housing and roommate discovery for Michigan universities. React + Vite + React Router + Python/FastAPI + Supabase.
 
 ## Status
 
@@ -14,6 +14,12 @@ Use Node.js 22.12+ (24 recommended) and pnpm 11.25.0.
 
 ```sh
 pnpm install --frozen-lockfile
+# Terminal 1: Python API (Python 3.12+)
+python3 -m venv .venv
+.venv/bin/python -m pip install -r backend/requirements-dev.txt
+.venv/bin/python -m uvicorn backend.app:app --env-file .env.local --reload --port 8000
+
+# Terminal 2: React interface
 pnpm dev
 ```
 
@@ -34,7 +40,7 @@ Open the Local URL printed by Vite (normally http://localhost:5173). Without con
 4. In Auth, enable email confirmation; set Site URL to the actual frontend origin and allow `/auth/callback` and `/auth/update-password` on that origin. Configure a development mail service or use local Supabase's mail inbox. Configure password policy to match or exceed the UI's 10-character signup minimum.
 5. The pilot is invitation-only. Through trusted SQL, add each invited student's normalized university address to `pilot_invites`; no client can read or modify this list. Registration alone does not grant access. Review university email domains in `universities` before enabling live accounts. University affiliation and search campus are intentionally separate.
 6. Deploy `upload-listing-image` with the Supabase CLI. Set the function's `APP_ORIGIN` to the exact frontend origin (e.g. http://localhost:5173). Supabase supplies its server URL, anon key and service-role key to the function. Never move those server secrets into frontend config. Verify this function under the actual Edge runtime before relying on uploads.
-7. Restart Vite after editing `.env.local`.
+7. Restart Vite and FastAPI after editing `.env.local`. In Docker, rebuild React and recreate the API service. See [Python backend architecture](docs/python-backend.md).
 
 For a fresh local stack:
 
@@ -47,6 +53,8 @@ supabase functions serve upload-listing-image
 The seed contains universities only, not fake users or properties.
 
 ## Checks
+
+Python checks: `.venv/bin/python -m pytest backend/tests -q` and `.venv/bin/ruff check backend`. GitHub Actions validates both runtimes.
 
 ```sh
 pnpm lint
@@ -89,7 +97,7 @@ Account deletion requests immediately hide the account and prevent new activity.
 
 Docker and Kubernetes configuration is included. Start with `docker compose --env-file .env.local up --build -d`, then open http://127.0.0.1:8080. Docker Desktop is required. See [the container deployment guide](docs/container-deployment.md) for setup, Supabase redirect settings, Kubernetes commands, and verification limitations.
 
-`pnpm build` produces a static `dist/` directory. Configure the host to serve `index.html` for non-asset application routes, including nested housing/auth paths; do not rewrite missing assets to HTML. Put publishable frontend values into build-time environment configuration. Set the exact deployed auth redirect origins and Edge Function origin separately. Rebuild when frontend configuration changes. Source code is stored in the private [GitHub repository](https://github.com/vivaankasala/subletsafe). The frontend has not been published to external hosting. Database grants are explicitly reset for the application tables/functions so security does not depend on a Supabase project’s default grant settings.
+`pnpm build` produces the React `dist/` directory. The app also requires the Python API: forward `/api/` to FastAPI and serve other routes through the frontend. Deploying only `dist/` will not provide working sign-in or data calls. Configure the frontend host to serve `index.html` for non-asset application routes, including nested housing/auth paths; do not rewrite missing assets to HTML. Put publishable frontend values into build-time environment configuration. Set the exact deployed auth redirect origins and Edge Function origin separately. Rebuild when frontend configuration changes. Source code is stored in the private [GitHub repository](https://github.com/vivaankasala/subletsafe). The frontend has not been published to external hosting. Database grants are explicitly reset for the application tables/functions so security does not depend on a Supabase project’s default grant settings.
 
 ## Next operational work
 
@@ -97,3 +105,7 @@ Connect a development Supabase project, validate the full journey with two membe
 
 ## University signup gate
 Only exact @msu.edu and @umich.edu addresses can register. Frontend validation gives a clear error, and the private Auth-table trigger enforces the restriction against direct API bypass and account email changes. Email confirmation and pilot invitation are still required. See docs/signup-security.md for implementation and verification.
+
+## Python application backend
+
+All SDK HTTP requests go through the same-origin FastAPI gateway. Python validates writes, university signup domains, caller sessions and photos. It uses each caller’s token, so Supabase RLS remains enforced. Supabase handles Realtime WebSockets and signed image delivery. The existing Edge Function remains the privileged photo storage adapter; Python never needs a service-role key. React remains TypeScript, while the new application HTTP backend is Python. See [architecture and API guide](docs/python-backend.md).
